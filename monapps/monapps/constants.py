@@ -1,0 +1,1 @@
+external_db_name = 'external_db'

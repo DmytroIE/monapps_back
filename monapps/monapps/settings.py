@@ -43,9 +43,15 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "django_celery_beat",
     'rest_framework',
+    'treebeard',
     'apps.devices',
     'apps.datastreams',
     'apps.readings',
+    'apps.assets',
+    'apps.monapplications',
+    'apps.datafeeds',
+    'apps.dfreadings',
+    'apps.nodes',
 ]
 
 MIDDLEWARE = [
@@ -71,6 +77,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                #'django.core.context_processors.request',
             ],
         },
     },

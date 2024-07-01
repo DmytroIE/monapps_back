@@ -11,6 +11,7 @@ cron-descriptor==1.4.3
 Django==5.0.6
 django-celery-beat==2.6.0
 django-timezone-field==6.1.0
+django-treebeard==4.7.1
 djangorestframework==3.15.1
 kombu==5.3.7
 prompt_toolkit==3.0.47

@@ -1,3 +1,4 @@
+import json
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from django_celery_beat.models import PeriodicTask
@@ -14,10 +15,11 @@ class MonAppType(models.Model):
     name = models.CharField(max_length=200, blank = False, unique = True)
     description = models.CharField(max_length=1000, blank = True)
     path = models.CharField(max_length=200, blank = False, unique = True) # F.e. 'apps.monapplications.tasks.eval_trap_status_v1'
-    input_ds_schema  = models.JSONField()
-    # F.e. {"tempUpstream": {"verboseName":"Temperature upstream the heat exchanger", "type":"Temperature", "required": true}, "tankPressure": {...}}
-    input_df_schema  = models.JSONField(blank=True)
-    output_df_schema  = models.JSONField(blank=True)
+    input_ds_schema  = models.JSONField(default=dict, blank=True)
+    # F.e. {"tempUpstream": {"description":"Temperature upstream the heat exchanger", "type":"Temperature", "required": true}, "tankPressure": {...}}
+    input_df_schema  = models.JSONField(default=dict, blank=True)
+    output_df_schema  = models.JSONField(default=dict, blank=True)
+    app_data_schema  = models.JSONField(default=dict, blank=True) # Schema for one record, f.e. {"tdif_setpoint": "int", ... }
     has_status = models.BooleanField()
     has_current_state = models.BooleanField()
 
@@ -56,9 +58,10 @@ class MonApplication(models.Model):
     )
 
 
-    input_ds_schema = models.JSONField() # Should align with the values in self.type.input_ds_schema, f.e. {"tempUpstream": 125, ... where 125 is the id of a datastream
-    input_df_schema = models.JSONField(blank=True) # Should align with the values in self.type.input_df_schema
-    output_df_schema = models.JSONField(blank=True) # Should align with the values in self.type.output_df_schema
+    input_datastreams = models.JSONField(default=dict, blank=True) # Should align with the values in self.type.input_ds_schema, f.e. {"tempUpstream": 125, ... where 125 is the id of a datastream
+    input_datafeeds = models.JSONField(default=dict, blank=True) # Should align with the values in self.type.input_df_schema
+    output_datafeeds = models.JSONField(default=dict, blank=True) # Should align with the values in self.type.output_df_schema
+    app_data  = models.JSONField(default=dict, blank=True) # F.e. {1726123593148: {"tdif_setpoint": "int", ... }, ...}
     status = models.IntegerField(default=StatusTypes.UNDEFINED, choices=StatusTypes.choices, null=True, blank=True) # null=True because some apps can have no Status or Current state
     current_state = models.IntegerField(default=CurrentStateTypes.UNDEFINED, choices=CurrentStateTypes.choices, null=True, blank=True)
     prev_status = models.IntegerField(default=StatusTypes.UNDEFINED, choices=StatusTypes.choices, null=True, blank=True)
@@ -67,7 +70,7 @@ class MonApplication(models.Model):
     current_state_use = models.IntegerField(default=StateStatusUse.AS_IS, choices=StateStatusUse.choices)
     nodes = GenericRelation(Node, related_query_name='monapp')
 
-    retain = models.JSONField(null=True, blank=True) # For retaining the state between calculations
+    state = models.JSONField(default=dict, blank=True) # For retaining the state between calculations
 
     task = models.OneToOneField(PeriodicTask, 
                              on_delete = models.SET_NULL,
@@ -88,6 +91,14 @@ class MonApplication(models.Model):
 
 
 def update_parent_update_monapp(sender, instance, **kwargs):
+    print(f'\n\n\n{instance.state}')
+    print(type(instance.state))
+    try:
+        obj = json.loads(instance.state)
+        print(obj)
+        print(type(obj))
+    except Exception as e:
+        print(e)
     node=instance.nodes.filter(monapp__pk=instance.pk).first()
     if node and not node.is_root():
         if (instance.type.has_status and instance.status_use != StateStatusUse.DONT_USE and 

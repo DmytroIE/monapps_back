@@ -81,7 +81,7 @@ def update_parent_from_asset(sender, instance, **kwargs):
             instance.prev_status != instance.status) \
             or \
            (instance.current_state_use != StateStatusUse.DONT_USE and 
-            instance.prev_scurrent_state != instance.current_state):
+            instance.prev_current_state != instance.current_state):
             parent = node.get_parent()
             parent.content_object.update_status_or_curr_state()
             instance.prev_status = instance.status
